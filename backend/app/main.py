@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 import asyncpg
 from fastapi import FastAPI
@@ -9,6 +10,8 @@ from app.adapters.llm.grok import GrokLLMClient
 from app.routers import chat, health, search
 from app.services.embedder import EmbeddingClient
 from app.settings import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _create_llm_client(settings: Settings) -> BaseLLMClient:
@@ -31,7 +34,19 @@ async def lifespan(app: FastAPI):
         missing.append("GROK_API_KEY")
     if missing:
         raise RuntimeError("Required environment variables are missing: " + ", ".join(missing))
-    app.state.db_pool = await asyncpg.create_pool(settings.database_url)
+    if settings.db_pool_min_size > settings.db_pool_max_size:
+        raise RuntimeError("DB_POOL_MIN_SIZE must be less than or equal to DB_POOL_MAX_SIZE")
+    try:
+        app.state.db_pool = await asyncpg.create_pool(
+            settings.database_url,
+            min_size=settings.db_pool_min_size,
+            max_size=settings.db_pool_max_size,
+        )
+        app.state.db_startup_error = None
+    except Exception as exc:
+        app.state.db_pool = None
+        app.state.db_startup_error = str(exc)
+        logger.exception("Database connection pool initialization failed.")
     try:
         app.state.embedder = EmbeddingClient(settings.openai_api_key)
         app.state.llm = _create_llm_client(settings)
@@ -39,10 +54,11 @@ async def lifespan(app: FastAPI):
         app.state.llm_health_checked_at = 0.0
         yield
     finally:
-        await app.state.db_pool.close()
+        if app.state.db_pool is not None:
+            await app.state.db_pool.close()
 
 
-app = FastAPI(title="Sports RAG Chatbot API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="スポーツルールRAGチャットボット API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

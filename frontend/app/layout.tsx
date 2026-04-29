@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sports RAG Chatbot",
+  title: "スポーツルールRAGチャットボット",
   description: "出典付きで回答するスポーツ向けRAGチャットボット"
 };
 
@@ -15,4 +15,3 @@ export default function RootLayout({
     </html>
   );
 }
-

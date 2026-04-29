@@ -1,4 +1,4 @@
-# Sports RAG Chatbot
+# スポーツルールRAGチャットボット
 
 スポーツに関する公開データ（Markdown・PDF）を取り込み、**出典付きで回答する RAG チャットボット**。
 

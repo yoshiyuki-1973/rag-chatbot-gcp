@@ -18,7 +18,7 @@ export function MessageList({ messages, loading }: Props) {
     <div className="flex-1 space-y-4 overflow-y-auto p-4">
       {messages.length === 0 ? (
         <div className="rounded border border-line bg-white p-4">
-          <p className="text-lg font-semibold">Sports RAG Chatbot</p>
+          <p className="text-lg font-semibold">スポーツルールRAGチャットボット</p>
           <p className="mt-2 text-sm text-ink/70">
             質問を送ると、回答と参照した出典が表示されます。
           </p>
@@ -54,4 +54,3 @@ export function MessageList({ messages, loading }: Props) {
     </div>
   );
 }
-

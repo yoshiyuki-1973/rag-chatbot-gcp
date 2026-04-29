@@ -37,7 +37,7 @@ export function ChatContainer() {
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col border-x border-line bg-field">
       <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
-        <h1 className="text-lg font-semibold">Sports RAG Chatbot</h1>
+        <h1 className="text-lg font-semibold">スポーツルールRAGチャットボット</h1>
         <a className="text-sm font-medium text-moss" href="/search">
           検索
         </a>
@@ -52,4 +52,3 @@ export function ChatContainer() {
     </main>
   );
 }
-

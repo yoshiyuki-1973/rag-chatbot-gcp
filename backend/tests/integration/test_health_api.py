@@ -15,6 +15,13 @@ def test_health_returns_503_when_database_check_fails(db_error_client: TestClien
     assert response.json()["services"]["database"] == "error"
 
 
+def test_health_returns_503_when_database_pool_startup_fails(db_startup_error_client: TestClient):
+    response = db_startup_error_client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json()["services"]["database"] == "error"
+
+
 def test_health_returns_503_when_llm_check_fails(llm_error_client: TestClient):
     response = llm_error_client.get("/health")
 

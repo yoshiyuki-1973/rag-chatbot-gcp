@@ -65,6 +65,7 @@ class RAGService:
         try:
             answer = await self.llm.generate(SYSTEM_PROMPT.format(context=context), query)
         except Exception as exc:
+            logger.exception("LLM generation failed.")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={

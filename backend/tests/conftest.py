@@ -46,21 +46,22 @@ class _FailingLLM:
         raise RuntimeError("llm unavailable")
 
 
-def _make_test_client(db_ok: bool = True, llm=None):
+def _make_test_client(db_ok: bool = True, llm=None, db_startup_error: bool = False):
     mock_pool = _make_mock_pool(db_ok=db_ok)
     llm = llm or _FakeLLM()
     with patch.dict("os.environ", _FAKE_ENV):
         get_settings.cache_clear()
         get_settings()  # キャッシュをフェイク環境変数で事前生成
+        create_pool = AsyncMock(side_effect=OSError("network is unreachable")) if db_startup_error else AsyncMock(return_value=mock_pool)
         with (
-            patch("app.main.asyncpg.create_pool", AsyncMock(return_value=mock_pool)),
+            patch("app.main.asyncpg.create_pool", create_pool),
             patch.object(_main, "_create_llm_client", return_value=llm),
             patch("app.services.embedder.AsyncOpenAI"),
         ):
             with TestClient(app) as client:
                 client.app.state.test_llm = llm
                 yield client
-    for key in ("llm_health_status", "llm_health_checked_at", "test_llm"):
+    for key in ("db_pool", "db_startup_error", "llm_health_status", "llm_health_checked_at", "test_llm"):
         if hasattr(app.state, key):
             delattr(app.state, key)
     get_settings.cache_clear()
@@ -74,6 +75,11 @@ def test_client():
 @pytest.fixture
 def db_error_client():
     yield from _make_test_client(db_ok=False)
+
+
+@pytest.fixture
+def db_startup_error_client():
+    yield from _make_test_client(db_startup_error=True)
 
 
 @pytest.fixture

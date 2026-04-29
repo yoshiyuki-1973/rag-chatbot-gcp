@@ -8,7 +8,7 @@ from app.settings import Settings
 def test_create_llm_client_returns_grok_instance():
     settings = Settings(
         GROK_API_KEY="xai-test",
-        GROK_MODEL="grok-3-fast",
+        GROK_MODEL="grok-4.20",
         LLM_PROVIDER="grok",
         _env_file=None,
     )

@@ -1,9 +1,168 @@
 sources:
-  - path: data/markdown/sample.md
-    title: サンプルMarkdown
-    source_url: local://sample.md
-    file_type: markdown
-    organization: Sample
-    authority_score: 0.5
+  - path: data/pdf/FIE_Technical_Rules_EN.pdf
+    title: FIE Technical Rules
+    source_url: local://FIE_Technical_Rules_EN.pdf
+    file_type: pdf
+    organization: FIE
+    authority_score: 0.9
     content_date:
 
+  - path: data/pdf/FIH_Rules_of_Hockey_2026_EN.pdf
+    title: FIH Rules of Hockey 2026
+    source_url: local://FIH_Rules_of_Hockey_2026_EN.pdf
+    file_type: pdf
+    organization: FIH
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/FIVB_Beach_Volleyball_Rules_2025-2028_EN.pdf
+    title: FIVB Beach Volleyball Rules 2025-2028
+    source_url: local://FIVB_Beach_Volleyball_Rules_2025-2028_EN.pdf
+    file_type: pdf
+    organization: FIVB
+    authority_score: 0.9
+    content_date: 2025-01-01
+
+  - path: data/pdf/FIVB_Volleyball_Rules_2025-2028_EN.pdf
+    title: FIVB Volleyball Rules 2025-2028
+    source_url: local://FIVB_Volleyball_Rules_2025-2028_EN.pdf
+    file_type: pdf
+    organization: FIVB
+    authority_score: 0.9
+    content_date: 2025-01-01
+
+  - path: data/pdf/IHF_Indoor_Handball_Rules_EN.pdf
+    title: IHF Indoor Handball Rules
+    source_url: local://IHF_Indoor_Handball_Rules_EN.pdf
+    file_type: pdf
+    organization: IHF
+    authority_score: 0.9
+    content_date:
+
+  - path: data/pdf/IPF_Technical_Rulebook_2026_EN.pdf
+    title: IPF Technical Rulebook 2026
+    source_url: local://IPF_Technical_Rulebook_2026_EN.pdf
+    file_type: pdf
+    organization: IPF
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/ITTF_Statutes_2026_EN.pdf
+    title: ITTF Statutes 2026
+    source_url: local://ITTF_Statutes_2026_EN.pdf
+    file_type: pdf
+    organization: ITTF
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/IWF_Technical_and_Competition_Rules_EN.pdf
+    title: IWF Technical and Competition Rules
+    source_url: local://IWF_Technical_and_Competition_Rules_EN.pdf
+    file_type: pdf
+    organization: IWF
+    authority_score: 0.9
+    content_date:
+
+  - path: data/pdf/JBA_バスケットボール競技規則_2026.pdf
+    title: JBA バスケットボール競技規則 2026
+    source_url: local://JBA_バスケットボール競技規則_2026.pdf
+    file_type: pdf
+    organization: JBA
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/JFA_サッカー競技規則_2025-26.pdf
+    title: JFA サッカー競技規則 2025-26
+    source_url: local://JFA_サッカー競技規則_2025-26.pdf
+    file_type: pdf
+    organization: JFA
+    authority_score: 0.9
+    content_date: 2025-01-01
+
+  - path: data/pdf/lawsofthegame_202526.pdf
+    title: Laws of the Game 2025-26
+    source_url: local://lawsofthegame_202526.pdf
+    file_type: pdf
+    organization: IFAB
+    authority_score: 0.9
+    content_date: 2025-01-01
+
+  - path: data/pdf/MLB_Official_Baseball_Rules_2026_EN.pdf
+    title: MLB Official Baseball Rules 2026
+    source_url: local://MLB_Official_Baseball_Rules_2026_EN.pdf
+    file_type: pdf
+    organization: MLB
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/UWW_Wrestling_Rules_2026_EN.pdf
+    title: UWW Wrestling Rules 2026
+    source_url: local://UWW_Wrestling_Rules_2026_EN.pdf
+    file_type: pdf
+    organization: UWW
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/WBSC_Fast_Pitch_Softball_Rules_2026-2029_EN.pdf
+    title: WBSC Fast Pitch Softball Rules 2026-2029
+    source_url: local://WBSC_Fast_Pitch_Softball_Rules_2026-2029_EN.pdf
+    file_type: pdf
+    organization: WBSC
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/WBSC_Official_Baseball_Rules_2025-2026_EN.pdf
+    title: WBSC Official Baseball Rules 2025-2026
+    source_url: local://WBSC_Official_Baseball_Rules_2025-2026_EN.pdf
+    file_type: pdf
+    organization: WBSC
+    authority_score: 0.9
+    content_date: 2025-01-01
+
+  - path: data/pdf/WKF_Kata_Competition_Rules_2026_EN.pdf
+    title: WKF Kata Competition Rules 2026
+    source_url: local://WKF_Kata_Competition_Rules_2026_EN.pdf
+    file_type: pdf
+    organization: WKF
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/WKF_Kumite_Competition_Rules_2026_EN.pdf
+    title: WKF Kumite Competition Rules 2026
+    source_url: local://WKF_Kumite_Competition_Rules_2026_EN.pdf
+    file_type: pdf
+    organization: WKF
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/World_Rugby_Laws_2025_EN.pdf
+    title: World Rugby Laws 2025
+    source_url: local://World_Rugby_Laws_2025_EN.pdf
+    file_type: pdf
+    organization: World Rugby
+    authority_score: 0.9
+    content_date: 2025-01-01
+
+  - path: data/pdf/全柔連_少年大会試合審判規程_2026.pdf
+    title: 全柔連 少年大会試合審判規程 2026
+    source_url: local://全柔連_少年大会試合審判規程_2026.pdf
+    file_type: pdf
+    organization: 全柔連
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/全空連_競技規定変更概要_2026.pdf
+    title: 全空連 競技規定変更概要 2026
+    source_url: local://全空連_競技規定変更概要_2026.pdf
+    file_type: pdf
+    organization: 全空連
+    authority_score: 0.9
+    content_date: 2026-01-01
+
+  - path: data/pdf/日本レスリング協会_国際ルール_2026.pdf
+    title: 日本レスリング協会 国際ルール 2026
+    source_url: local://日本レスリング協会_国際ルール_2026.pdf
+    file_type: pdf
+    organization: 日本レスリング協会
+    authority_score: 0.9
+    content_date: 2026-01-01

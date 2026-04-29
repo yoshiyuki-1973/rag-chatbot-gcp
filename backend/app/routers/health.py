@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 
 from fastapi import APIRouter, Request
@@ -7,6 +8,7 @@ from fastapi.responses import JSONResponse
 from app.models.schemas import HealthResponse
 
 router = APIRouter(tags=["health"])
+logger = logging.getLogger(__name__)
 
 LLM_HEALTH_CACHE_TTL_SECONDS = 30
 LLM_HEALTH_TIMEOUT_SECONDS = 2
@@ -16,7 +18,9 @@ LLM_HEALTH_TIMEOUT_SECONDS = 2
 async def health(request: Request):
     database_status = "degraded"
     pool = getattr(request.app.state, "db_pool", None)
-    if pool is not None:
+    if getattr(request.app.state, "db_startup_error", None):
+        database_status = "error"
+    elif pool is not None:
         try:
             async with pool.acquire() as conn:
                 await conn.fetchval("SELECT 1")
@@ -41,6 +45,7 @@ async def health(request: Request):
                 request.app.state.llm_health_status = llm_status
                 request.app.state.llm_health_checked_at = now
             except Exception:
+                logger.exception("LLM health check failed.")
                 llm_status = "error"
     services = {
         "database": database_status,
