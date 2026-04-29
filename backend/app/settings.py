@@ -6,10 +6,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
-    grok_api_key: str | None = Field(default=None, alias="GROK_API_KEY")
-    grok_model: str = Field(default="grok-4.20", alias="GROK_MODEL")
+    gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
-    llm_provider: str = Field(default="grok", alias="LLM_PROVIDER")
+    llm_provider: str = Field(default="gemini", alias="LLM_PROVIDER")
     top_k_default: int = Field(default=5, alias="TOP_K_DEFAULT")
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
     db_pool_min_size: int = Field(default=1, alias="DB_POOL_MIN_SIZE")

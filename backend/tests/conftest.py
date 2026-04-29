@@ -10,8 +10,8 @@ from app.settings import get_settings
 _FAKE_ENV = {
     "DATABASE_URL": "postgresql://test:test@localhost/test",
     "OPENAI_API_KEY": "sk-test",
-    "GROK_API_KEY": "xai-test",
-    "LLM_PROVIDER": "grok",
+    "GEMINI_API_KEY": "gemini-test",
+    "LLM_PROVIDER": "gemini",
 }
 
 

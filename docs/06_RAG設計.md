@@ -1,4 +1,4 @@
-# 06 RAG設計・LLM設計・バッチ処理設計
+﻿# 06 RAG設計・LLM設計・バッチ処理設計
 
 ## 1. RAG 設計
 
@@ -8,7 +8,7 @@
 
 | パラメータ | 値 | 理由 |
 |---|---|---|
-| chunk_size | 500 トークン | LLM のコンテキスト上限（Grok: 128K）に対して余裕を持ちつつ、1 チャンクに意味のある情報量を確保 |
+| chunk_size | 500 トークン | LLM のコンテキスト上限（Gemini: 128K）に対して余裕を持ちつつ、1 チャンクに意味のある情報量を確保 |
 | chunk_overlap | 50 トークン | チャンク境界で文脈が切れるのを防ぐ。10% 程度のオーバーラップが一般的 |
 | splitter | 独自 chunker | 段落 → 文 → 文字の順に分割し、意味の切れ目でチャンクを分割する |
 
@@ -43,7 +43,7 @@ separators = ["\n\n", "\n", "。", ".", " ", ""]
 | バッチサイズ | 100 チャンクずつ | API レート制限に対応しつつ効率的に処理 |
 | エラー時の挙動 | リトライ 3 回後スキップ・ログ出力 | 一部失敗しても全体を止めない |
 
-> **補足**: Grok が Embeddings API を提供する場合は Grok に切り替えることでコストを統一できる。OpenAI Embeddings は低コスト（$0.02/1M tokens）のため現状維持でも問題ない。
+> **補足**: Gemini が Embeddings API を提供する場合は Gemini に切り替えることでコストを統一できる。OpenAI Embeddings は低コスト（$0.02/1M tokens）のため現状維持でも問題ない。
 
 ---
 
@@ -156,11 +156,11 @@ class BaseLLMClient(ABC):
         yield await self.generate(system_prompt, user_message, max_tokens, temperature)
 ```
 
-#### 現在の実装: GrokLLMClient
+#### 現在の実装: GeminiLLMClient
 
 ```python
-class GrokLLMClient(BaseLLMClient):
-    """OpenAI 互換 API を使って Grok に接続する実装"""
+class GeminiLLMClient(BaseLLMClient):
+    """Google Gen AI SDK を使って Gemini API に接続する実装"""
 
     def __init__(self, api_key: str, model: str):
         self.client = AsyncOpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
@@ -190,7 +190,7 @@ class GrokLLMClient(BaseLLMClient):
 | LLM | 実装クラス | 変更箇所 |
 |---|---|---|
 | Claude（Anthropic） | `ClaudeLLMClient` | `anthropic.AsyncAnthropic` を使用。`system` パラメータが別途必要 |
-| OpenAI GPT-4o | `OpenAILLMClient` | `base_url` を変更するだけで GrokLLMClient を流用可能 |
+| OpenAI GPT-4o | `OpenAILLMClient` | OpenAI SDK を使用する Adapter を追加する |
 | ローカル LLM（Ollama） | `OllamaLLMClient` | `base_url` を `http://localhost:11434/v1` に変更 |
 
 ### 2.2 初期化と注入パターン
@@ -202,8 +202,8 @@ LLM は起動時に `main.py` の `_create_llm_client(settings)` ファクトリ
 def _create_llm_client(settings: Settings) -> BaseLLMClient:
     """LLM_PROVIDER に基づいてクライアントを生成するファクトリ。
     新規プロバイダー追加時はここに elif を足し、対応 Adapter を実装する。"""
-    if settings.llm_provider == "grok":
-        return GrokLLMClient(settings.grok_api_key, settings.grok_model)
+    if settings.llm_provider == "gemini":
+        return GeminiLLMClient(settings.gemini_api_key, settings.gemini_model)
     raise RuntimeError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
 
 # dependencies.py
@@ -215,7 +215,7 @@ def get_rag_service(request: Request) -> RAGService:
     )
 ```
 
-MVP では `LLM_PROVIDER=grok` のみ実装し、Claude・OpenAI は Adapter 追加時に切り替え対象へ加える。
+MVP では `LLM_PROVIDER=gemini` のみ実装し、Claude・OpenAI は Adapter 追加時に切り替え対象へ加える。
 
 ### 2.3 temperature の設計方針
 
@@ -383,3 +383,6 @@ services:
 ```bash
 docker compose run --rm ingest
 ```
+
+
+
