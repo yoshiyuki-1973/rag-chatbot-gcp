@@ -1,4 +1,4 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
 import logging
 
 import asyncpg
@@ -17,7 +17,13 @@ logger = logging.getLogger(__name__)
 def _create_llm_client(settings: Settings) -> BaseLLMClient:
     """LLM_PROVIDER 設定に基づいて LLM クライアントを生成する。"""
     if settings.llm_provider == "gemini":
-        return GeminiLLMClient(settings.gemini_api_key, settings.gemini_model_candidates)
+        return GeminiLLMClient(
+            api_key=settings.gemini_api_key,
+            models=settings.gemini_model_candidates,
+            vertexai=settings.use_vertex_ai,
+            project=settings.gcp_project_id,
+            location=settings.gcp_location,
+        )
     raise RuntimeError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
 
 
@@ -27,10 +33,12 @@ async def lifespan(app: FastAPI):
     missing = []
     if not settings.database_url:
         missing.append("DATABASE_URL")
-    if not settings.openai_api_key:
-        missing.append("OPENAI_API_KEY")
-    if settings.llm_provider == "gemini" and not settings.gemini_api_key:
-        missing.append("GEMINI_API_KEY")
+    if not settings.use_vertex_ai:
+        if settings.llm_provider == "gemini" and not settings.gemini_api_key:
+            missing.append("GEMINI_API_KEY")
+    else:
+        if not settings.gcp_project_id:
+            missing.append("GCP_PROJECT_ID")
     if missing:
         raise RuntimeError("Required environment variables are missing: " + ", ".join(missing))
     if settings.db_pool_min_size > settings.db_pool_max_size:
@@ -47,7 +55,12 @@ async def lifespan(app: FastAPI):
         app.state.db_startup_error = str(exc)
         logger.exception("Database connection pool initialization failed.")
     try:
-        app.state.embedder = EmbeddingClient(settings.openai_api_key)
+        app.state.embedder = EmbeddingClient(
+            api_key=settings.gemini_api_key,
+            vertexai=settings.use_vertex_ai,
+            project=settings.gcp_project_id,
+            location=settings.gcp_location,
+        )
         app.state.llm = _create_llm_client(settings)
         app.state.llm_health_status = None
         app.state.llm_health_checked_at = 0.0

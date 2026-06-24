@@ -6,7 +6,7 @@ from app.adapters.vector_store.base import BaseVectorStore
 from app.models.schemas import SearchResult
 
 
-class SupabaseVectorStore(BaseVectorStore):
+class PostgreSQLVectorStore(BaseVectorStore):
     def __init__(self, pool: asyncpg.Pool):
         self.pool = pool
 

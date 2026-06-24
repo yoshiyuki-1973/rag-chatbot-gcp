@@ -1,0 +1,21 @@
+steps:
+  # Build the Next.js standalone docker image with dynamic API Base URL
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_BASE_URL=${_BACKEND_URL}'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/${_PROJECT_ID}/rag-chatbot-images/frontend:latest'
+      - '.'
+    id: 'build-frontend'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-northeast1-docker.pkg.dev/${_PROJECT_ID}/rag-chatbot-images/frontend:latest'
+    id: 'push-frontend'
+
+images:
+  - 'asia-northeast1-docker.pkg.dev/${_PROJECT_ID}/rag-chatbot-images/frontend:latest'

@@ -12,7 +12,9 @@ class Settings(BaseSettings):
         default="gemini-2.5-flash-lite",
         alias="GEMINI_FALLBACK_MODELS",
     )
-    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
+    use_vertex_ai: bool = Field(default=False, alias="USE_VERTEX_AI")
+    gcp_project_id: str | None = Field(default=None, alias="GCP_PROJECT_ID")
+    gcp_location: str = Field(default="us-central1", alias="GCP_LOCATION")
     llm_provider: str = Field(default="gemini", alias="LLM_PROVIDER")
     top_k_default: int = Field(default=5, alias="TOP_K_DEFAULT")
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")

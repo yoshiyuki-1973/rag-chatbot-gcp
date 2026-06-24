@@ -6,8 +6,24 @@ from app.adapters.llm.base import BaseLLMClient
 
 
 class GeminiLLMClient(BaseLLMClient):
-    def __init__(self, api_key: str, models: list[str]):
-        self.client = genai.Client(api_key=api_key)
+    def __init__(
+        self,
+        api_key: str | None,
+        models: list[str],
+        vertexai: bool = False,
+        project: str | None = None,
+        location: str | None = None,
+    ):
+        if vertexai:
+            self.client = genai.Client(
+                vertexai=True,
+                project=project,
+                location=location,
+            )
+        else:
+            self.client = genai.Client(
+                api_key=api_key,
+            )
         self.models = models
 
     async def generate(

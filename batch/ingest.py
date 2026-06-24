@@ -12,14 +12,25 @@ from extractors.pdf import extract_pdf
 
 def main() -> None:
     database_url = os.getenv("DATABASE_URL")
-    openai_api_key = os.getenv("OPENAI_API_KEY")
+    use_vertex_ai = os.getenv("USE_VERTEX_AI", "false").lower() == "true"
+    gcp_project_id = os.getenv("GCP_PROJECT_ID")
+    gcp_location = os.getenv("GCP_LOCATION", "us-central1")
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+
     if not database_url:
         raise RuntimeError("DATABASE_URL is required")
-    if not openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required")
+    if not use_vertex_ai and not gemini_api_key:
+        raise RuntimeError("GEMINI_API_KEY is required when USE_VERTEX_AI is false")
+    if use_vertex_ai and not gcp_project_id:
+        raise RuntimeError("GCP_PROJECT_ID is required when USE_VERTEX_AI is true")
 
     sources = load_sources(Path("sources.yaml"))
-    embedder = EmbeddingBatchClient(openai_api_key)
+    embedder = EmbeddingBatchClient(
+        api_key=gemini_api_key,
+        vertexai=use_vertex_ai,
+        project=gcp_project_id,
+        location=gcp_location,
+    )
     repository = IngestRepository(database_url)
     completed = 0
     failed = 0

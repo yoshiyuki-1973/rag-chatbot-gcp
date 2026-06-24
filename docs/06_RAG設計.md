@@ -1,4 +1,4 @@
-﻿# 06 RAG設計・LLM設計・バッチ処理設計
+# 06 RAG設計・LLM設計・バッチ処理設計
 
 ## 1. RAG 設計
 
@@ -38,12 +38,10 @@ separators = ["\n\n", "\n", "。", ".", " ", ""]
 
 | 項目 | 選択 | 理由 |
 |---|---|---|
-| モデル | `text-embedding-3-small`（OpenAI） | 1536 次元・低コスト・日本語対応 |
-| 次元数 | 1536 | Supabase pgvector VECTOR(1536) に対応 |
+| モデル | `text-embedding-004`（GCP / Google Cloud） | 768 次元・低コスト・高精度な多言語/日本語対応 |
+| 次元数 | 768 | Cloud SQL pgvector VECTOR(768) に対応 |
 | バッチサイズ | 100 チャンクずつ | API レート制限に対応しつつ効率的に処理 |
 | エラー時の挙動 | リトライ 3 回後スキップ・ログ出力 | 一部失敗しても全体を止めない |
-
-> **補足**: Gemini が Embeddings API を提供する場合は Gemini に切り替えることでコストを統一できる。OpenAI Embeddings は低コスト（$0.02/1M tokens）のため現状維持でも問題ない。
 
 ---
 
@@ -52,7 +50,7 @@ separators = ["\n\n", "\n", "。", ".", " ", ""]
 #### 検索クエリのベクトル化
 
 ```python
-query_embedding = embed(user_query)  # text-embedding-3-small
+query_embedding = embed(user_query)  # text-embedding-004
 ```
 
 #### pgvector でのコサイン類似度検索
@@ -159,12 +157,18 @@ class BaseLLMClient(ABC):
 #### 現在の実装: GeminiLLMClient
 
 ```python
-class GeminiLLMClient(BaseLLMClient):
-    """Google Gen AI SDK を使って Gemini API に接続する実装"""
+from google import genai
+from google.genai import types
 
-    def __init__(self, api_key: str, model: str):
-        self.client = AsyncOpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
-        self.model = model
+class GeminiLLMClient(BaseLLMClient):
+    """google-genai SDK を使って Vertex AI / Gemini API に接続する実装"""
+
+    def __init__(self, api_key: str | None, models: list[str], vertexai: bool = False, project: str | None = None, location: str | None = None):
+        if vertexai:
+            self.client = genai.Client(vertexai=True, project=project, location=location)
+        else:
+            self.client = genai.Client(api_key=api_key)
+        self.models = models
 
     async def generate(
         self,
@@ -173,25 +177,25 @@ class GeminiLLMClient(BaseLLMClient):
         max_tokens: int = 1000,
         temperature: float = 0.1,
     ) -> str:
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            max_tokens=max_tokens,
-            temperature=temperature,
-        )
-        return response.choices[0].message.content or ""
+        # models に登録されたモデル候補を順にフォールバック試行
+        for model in self.models:
+            try:
+                response = await self.client.aio.models.generate_content(
+                    model=model,
+                    contents=user_message,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        max_output_tokens=max_tokens,
+                        temperature=temperature,
+                    ),
+                )
+                return response.text or ""
+            except Exception:
+                if model == self.models[-1]:
+                    raise
 ```
 
-#### 将来の差し替え例
-
-| LLM | 実装クラス | 変更箇所 |
-|---|---|---|
-| Claude（Anthropic） | `ClaudeLLMClient` | `anthropic.AsyncAnthropic` を使用。`system` パラメータが別途必要 |
-| OpenAI GPT-4o | `OpenAILLMClient` | OpenAI SDK を使用する Adapter を追加する |
-| ローカル LLM（Ollama） | `OllamaLLMClient` | `base_url` を `http://localhost:11434/v1` に変更 |
+---
 
 ### 2.2 初期化と注入パターン
 
@@ -200,28 +204,24 @@ LLM は起動時に `main.py` の `_create_llm_client(settings)` ファクトリ
 ```python
 # main.py
 def _create_llm_client(settings: Settings) -> BaseLLMClient:
-    """LLM_PROVIDER に基づいてクライアントを生成するファクトリ。
-    新規プロバイダー追加時はここに elif を足し、対応 Adapter を実装する。"""
     if settings.llm_provider == "gemini":
-        return GeminiLLMClient(settings.gemini_api_key, settings.gemini_model)
+        return GeminiLLMClient(
+            api_key=settings.gemini_api_key,
+            models=settings.gemini_model_candidates,
+            vertexai=settings.use_vertex_ai,
+            project=settings.gcp_project_id,
+            location=settings.gcp_location
+        )
     raise RuntimeError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
 
 # dependencies.py
 def get_rag_service(request: Request) -> RAGService:
     return RAGService(
         embedder=request.app.state.embedder,
-        vector_store=SupabaseVectorStore(request.app.state.db_pool),
-        llm=request.app.state.llm,  # app.state 経由で注入
+        vector_store=PostgreSQLVectorStore(request.app.state.db_pool),
+        llm=request.app.state.llm,
     )
 ```
-
-MVP では `LLM_PROVIDER=gemini` のみ実装し、Claude・OpenAI は Adapter 追加時に切り替え対象へ加える。
-
-### 2.3 temperature の設計方針
-
-- **temperature: 0.1** を基本とする
-- RAG では「コンテキストに基づいた正確な回答」が目的であり、創造性より正確性を優先するため低温度に設定する
-- 自由な文章生成が必要な場合（要約等）は 0.3〜0.5 に上げることを検討する
 
 ---
 
@@ -301,20 +301,20 @@ def extract_pdf(path: str) -> str:
 ### 3.5 Embedding 生成（バッチ）
 
 ```python
-from openai import OpenAI
+from google import genai
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = genai.Client() # 設定に応じて vertexai/api_key を指定
 BATCH_SIZE = 100
 
 def embed_chunks(chunks: list[str]) -> list[list[float]]:
     embeddings = []
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i:i + BATCH_SIZE]
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=batch,
+        response = client.models.embed_content(
+            model="text-embedding-004",
+            contents=batch,
         )
-        embeddings.extend([e.embedding for e in response.data])
+        embeddings.extend([item.values for item in response.embeddings])
     return embeddings
 ```
 
@@ -375,7 +375,7 @@ services:
     env_file: .env
     volumes:
       - ./data:/app/data:ro
-    command: python ingest.py --sources sources.yaml
+    command: python ingest.py
 ```
 
 実行コマンド:
@@ -383,6 +383,3 @@ services:
 ```bash
 docker compose run --rm ingest
 ```
-
-
-

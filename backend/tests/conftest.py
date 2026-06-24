@@ -9,7 +9,6 @@ from app.settings import get_settings
 
 _FAKE_ENV = {
     "DATABASE_URL": "postgresql://test:test@localhost/test",
-    "OPENAI_API_KEY": "sk-test",
     "GEMINI_API_KEY": "gemini-test",
     "LLM_PROVIDER": "gemini",
 }
@@ -56,7 +55,7 @@ def _make_test_client(db_ok: bool = True, llm=None, db_startup_error: bool = Fal
         with (
             patch("app.main.asyncpg.create_pool", create_pool),
             patch.object(_main, "_create_llm_client", return_value=llm),
-            patch("app.services.embedder.AsyncOpenAI"),
+            patch("app.services.embedder.genai.Client"),
         ):
             with TestClient(app) as client:
                 client.app.state.test_llm = llm
