@@ -47,7 +47,7 @@ resource "google_sql_database_instance" "db_instance" {
   region           = var.region
 
   settings {
-    tier = "db-f1-micro" # 開発・検証コストを抑えるため最小構成
+    tier = var.db_tier
     ip_configuration {
       ipv4_enabled = true # ローカルの Auth Proxy や Ingest 接続用にパブリックIPを有効化
     }
@@ -128,6 +128,11 @@ resource "google_cloud_run_v2_service" "backend" {
       env {
         name  = "CORS_ORIGINS"
         value = var.cors_origins
+      }
+
+      volume_mounts {
+        name       = "cloudsql"
+        mount_path = "/cloudsql"
       }
     }
 

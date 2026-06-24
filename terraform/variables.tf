@@ -26,3 +26,10 @@ variable "cors_origins" {
   default     = "*"
   description = "Allowed origins for CORS (comma-separated, default is '*')"
 }
+
+variable "db_tier" {
+  type        = string
+  default     = "db-f1-micro"
+  description = "Cloud SQL database instance tier (e.g., db-f1-micro, db-custom-1-3840)"
+}
+
