@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     gcp_project_id: str | None = Field(default=None, alias="GCP_PROJECT_ID")
     gcp_location: str = Field(default="us-central1", alias="GCP_LOCATION")
     llm_provider: str = Field(default="gemini", alias="LLM_PROVIDER")
-    top_k_default: int = Field(default=5, alias="TOP_K_DEFAULT")
+    top_k_default: int = Field(default=10, alias="TOP_K_DEFAULT")
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
     db_pool_min_size: int = Field(default=1, alias="DB_POOL_MIN_SIZE")
     db_pool_max_size: int = Field(default=3, alias="DB_POOL_MAX_SIZE")

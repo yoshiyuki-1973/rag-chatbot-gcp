@@ -2,10 +2,8 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.schemas import SearchResult
-from app.services.rag_service import RAGService
+from app.services.rag_service import NO_CONTEXT_ANSWER, RAGService
 
-
-# ── フェイクオブジェクト ──────────────────────────────────────────────
 
 class FakeEmbedder:
     async def embed(self, text: str) -> list[float]:
@@ -15,15 +13,18 @@ class FakeEmbedder:
 def _make_result(
     title: str = "FIFA サッカー競技規則",
     content: str = "オフサイドに関する説明",
+    organization: str = "FIFA",
+    source_url: str = "https://example.com/rules.pdf",
+    similarity: float = 0.88,
 ) -> SearchResult:
     return SearchResult(
         document_id="550e8400-e29b-41d4-a716-446655440001",
         title=title,
-        source_url="https://example.com/rules.pdf",
-        organization="FIFA",
+        source_url=source_url,
+        organization=organization,
         authority_score=0.95,
         chunk_index=2,
-        similarity=0.88,
+        similarity=similarity,
         content=content,
     )
 
@@ -55,7 +56,7 @@ class FailingHistoryVectorStore(FakeVectorStore):
 
 
 class FakeLLM:
-    """呼び出し引数を記録するフェイク LLM（assert を含まない）"""
+    """呼び出し引数を記録するフェイク LLM。"""
 
     def __init__(self, return_value: str = "コンテキストに基づく回答です。"):
         self.last_system_prompt = ""
@@ -82,8 +83,6 @@ class FailingLLM:
         raise RuntimeError("llm failed")
 
 
-# ── 既存テスト ──────────────────────────────────────────────────────
-
 @pytest.mark.asyncio
 async def test_chat_returns_answer_and_sources():
     vector_store = FakeVectorStore()
@@ -96,7 +95,6 @@ async def test_chat_returns_answer_and_sources():
     assert response.session_id == "session-1"
     assert response.sources[0].title == "FIFA サッカー競技規則"
     assert vector_store.saved["session_id"] == "session-1"
-    # コンテキスト注入の検証はテスト本体で行う（FakeLLM 内 assert は排除済み）
     assert "オフサイドに関する説明" in llm.last_system_prompt
     assert llm.last_user_message == "オフサイドとは？"
 
@@ -133,27 +131,22 @@ async def test_chat_wraps_llm_errors():
     assert exc_info.value.detail["code"] == "LLM_ERROR"
 
 
-# ── RAG-02: 検索結果 0 件 ────────────────────────────────────────────
-
 @pytest.mark.asyncio
-async def test_chat_empty_search_results_returns_empty_sources():
-    """RAG-02: 検索結果 0 件のとき sources は空リストで LLM にはコンテキスト空が渡される"""
+async def test_chat_empty_search_results_returns_fixed_message_without_llm():
     vector_store = FakeVectorStore(results=[])
     llm = FakeLLM()
     service = RAGService(FakeEmbedder(), vector_store, llm)
 
     response = await service.chat("存在しない質問", "session-1", 5)
 
+    assert response.answer == NO_CONTEXT_ANSWER
     assert response.sources == []
-    # _build_context が "" を返すためシステムプロンプトのコンテキスト部は空
-    assert "コンテキスト:\n\n" in llm.last_system_prompt
+    assert llm.last_user_message == ""
+    assert vector_store.saved["response"] == NO_CONTEXT_ANSWER
 
-
-# ── RAG-04: top_k パラメータ転送 ─────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_chat_passes_top_k_to_vector_store():
-    """RAG-04: chat に渡した top_k が VectorStore.search に正しく転送される"""
     vector_store = FakeVectorStore()
     service = RAGService(FakeEmbedder(), vector_store, FakeLLM())
 
@@ -162,14 +155,11 @@ async def test_chat_passes_top_k_to_vector_store():
     assert vector_store.last_top_k == 3
 
 
-# ── RAG-05: コンテキスト組み立て ─────────────────────────────────────
-
 @pytest.mark.asyncio
 async def test_chat_builds_context_from_multiple_chunks():
-    """RAG-05: 複数チャンクが取得された場合、全チャンクの本文と出典タイトルがプロンプトに含まれる"""
     results = [
-        _make_result(title="ドキュメント A", content="Aの内容"),
-        _make_result(title="ドキュメント B", content="Bの内容"),
+        _make_result(title="ドキュメントA", content="Aの内容"),
+        _make_result(title="ドキュメントB", content="Bの内容"),
     ]
     vector_store = FakeVectorStore(results=results)
     llm = FakeLLM()
@@ -179,5 +169,96 @@ async def test_chat_builds_context_from_multiple_chunks():
 
     assert "Aの内容" in llm.last_system_prompt
     assert "Bの内容" in llm.last_system_prompt
-    assert "ドキュメント A" in llm.last_system_prompt
-    assert "ドキュメント B" in llm.last_system_prompt
+    assert "ドキュメントA" in llm.last_system_prompt
+    assert "ドキュメントB" in llm.last_system_prompt
+
+
+@pytest.mark.asyncio
+async def test_chat_asks_for_topic_when_multiple_sports_match_ambiguous_query():
+    results = [
+        _make_result(
+            title="FIH Rules of Hockey 2026",
+            organization="FIH",
+            source_url="local://FIH_Rules_of_Hockey_2026_EN.pdf",
+            content="Players must not obstruct an opponent.",
+        ),
+        _make_result(
+            title="全空連 競技規定変更概要 2026",
+            organization="全空連",
+            source_url="local://全空連_競技規定変更概要_2026.pdf",
+            content="反則注意からの累積による反則。",
+        ),
+    ]
+    vector_store = FakeVectorStore(results=results)
+    llm = FakeLLM()
+    service = RAGService(FakeEmbedder(), vector_store, llm)
+
+    response = await service.chat("どんな行為が反則？", "session-1", 10)
+
+    assert "複数の競技" in response.answer
+    assert "ホッケー" in response.answer
+    assert "空手" in response.answer
+    assert response.sources == []
+    assert llm.last_user_message == ""
+    assert vector_store.saved["response"] == response.answer
+
+
+@pytest.mark.asyncio
+async def test_chat_answers_when_topic_is_specified_even_if_multiple_sports_match():
+    results = [
+        _make_result(
+            title="FIH Rules of Hockey 2026",
+            organization="FIH",
+            source_url="local://FIH_Rules_of_Hockey_2026_EN.pdf",
+            content="Players must not obstruct an opponent.",
+        ),
+        _make_result(
+            title="全空連 競技規定変更概要 2026",
+            organization="全空連",
+            source_url="local://全空連_競技規定変更概要_2026.pdf",
+            content="反則注意からの累積による反則。",
+        ),
+    ]
+    llm = FakeLLM(return_value="検索された範囲では、ホッケーの反則は...。")
+    service = RAGService(FakeEmbedder(), FakeVectorStore(results=results), llm)
+
+    response = await service.chat("ホッケーではどんな行為が反則？", "session-1", 10)
+
+    assert response.answer == "検索された範囲では、ホッケーの反則は...。"
+    assert len(response.sources) == 1
+    assert response.sources[0].title == "FIH Rules of Hockey 2026"
+    assert llm.last_user_message == "ホッケーではどんな行為が反則？"
+    assert "全空連" not in llm.last_system_prompt
+
+
+@pytest.mark.asyncio
+async def test_chat_returns_topic_no_context_when_specified_topic_has_no_match():
+    results = [
+        _make_result(
+            title="FIH Rules of Hockey 2026",
+            organization="FIH",
+            source_url="local://FIH_Rules_of_Hockey_2026_EN.pdf",
+            content="Players must not obstruct an opponent.",
+        )
+    ]
+    llm = FakeLLM()
+    service = RAGService(FakeEmbedder(), FakeVectorStore(results=results), llm)
+
+    response = await service.chat("空手ではどんな行為が反則？", "session-1", 10)
+
+    assert response.answer == "空手に関する情報は、検索された範囲では見つかりませんでした。"
+    assert response.sources == []
+    assert llm.last_user_message == ""
+
+
+@pytest.mark.asyncio
+async def test_chat_returns_fixed_message_without_llm_when_similarity_is_too_low():
+    result = _make_result(similarity=0.2)
+    llm = FakeLLM()
+    service = RAGService(FakeEmbedder(), FakeVectorStore(results=[result]), llm)
+
+    response = await service.chat("ホッケーではどんな行為が反則？", "session-1", 10)
+
+    assert response.answer == NO_CONTEXT_ANSWER
+    assert response.sources == []
+    assert llm.last_user_message == ""

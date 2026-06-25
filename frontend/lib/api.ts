@@ -24,7 +24,7 @@ export async function sendChat(query: string, sessionId: string): Promise<ChatRe
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, session_id: sessionId, top_k: 5 })
+    body: JSON.stringify({ query, session_id: sessionId })
   });
   return parseResponse(response);
 }

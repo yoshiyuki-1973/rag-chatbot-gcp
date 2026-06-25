@@ -1,15 +1,12 @@
 services:
   db:
     image: pgvector/pgvector:pg15-trixie
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres_password
       POSTGRES_DB: rag_chatbot
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -19,12 +16,7 @@ services:
   backend:
     build:
       context: ./backend
-    ports:
-      - "8000:8000"
     env_file: .env
-    volumes:
-      - ./backend:/app
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     depends_on:
       db:
         condition: service_healthy
@@ -33,9 +25,6 @@ services:
     build:
       context: ./batch
     env_file: .env
-    volumes:
-      - ./data:/app/data:ro
-      - ./batch/sources.yaml:/app/sources.yaml:ro
     profiles:
       - batch
     depends_on:
@@ -44,4 +33,3 @@ services:
 
 volumes:
   pgdata:
-

@@ -1,0 +1,18 @@
+services:
+  db:
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+
+  backend:
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+  ingest:
+    volumes:
+      - ./data:/app/data:ro
+      - ./batch/sources.yaml:/app/sources.yaml:ro

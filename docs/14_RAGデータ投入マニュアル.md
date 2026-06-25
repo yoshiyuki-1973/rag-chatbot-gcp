@@ -75,6 +75,22 @@ sources:
      - `0.50 〜 0.69`: 大手スポーツメディア、報道機関
      - `0.30 〜 0.49`: Wikipediaや一般ブログ等
 
+### 再投入時の挙動
+
+現在のインジェストバッチは、ファイルの更新日時やハッシュによる差分検知は行いません。
+`batch/sources.yaml` に記載されているデータソースを、実行のたびにすべて処理します。
+
+| 操作 | 挙動 |
+|---|---|
+| PDF / Markdown を追加し、`sources.yaml` に追加する | 新しい `source_url` として `documents` に追加され、チャンクと Embedding が登録される |
+| 既存ファイルの内容を変更し、同じ `source_url` のまま再実行する | `documents` のメタ情報を更新し、既存の `document_chunks` を全削除してから、新しいチャンクと Embedding を登録し直す |
+| 変更していないファイルが `sources.yaml` に残っている | 変更していなくても再処理され、チャンクと Embedding が作り直される |
+| `sources.yaml` から項目を削除する | 次回以降の処理対象から外れるだけで、DB 上の既存データは自動削除されない |
+| 同じファイルで `source_url` を変更する | 別ドキュメントとして新規登録される。古い `source_url` のデータは自動削除されない |
+
+> [!NOTE]
+> 少量のデータでは全件再投入でも問題ありません。データ量が増えて API コストや実行時間が気になる場合は、将来的にファイルハッシュや `updated_at` を使った差分投入の仕組みを追加します。
+
 ---
 
 ## 4. インジェストバッチの実行手順
@@ -140,9 +156,9 @@ GCP（Cloud SQL）への投入は、セキュリティの観点から **Cloud SQ
 インジェスト完了後、検索を高速化するためデータベース側でベクトル検索用インデックス（IVFFlat）を再ビルドします。
 実行先がローカル DB か GCP Cloud SQL かによって、以下のいずれかの方法で SQL を実行します。
 
-#### 方法A: ローカル Docker DB に対して実行する場合
+#### 方法A: ローカル Docker DB に対して Docker コマンドで実行する場合（推奨）
 
-プロジェクトルートで、DB コンテナに入って `psql` を実行します。ローカル PC に PostgreSQL クライアントを入れていなくても、この方法で実行できます。
+プロジェクトルートで、DB コンテナ内の `psql` を Docker 経由で実行します。ローカル PC に PostgreSQL クライアントをインストールする必要はありません。
 
 ```bash
 # DB コンテナが起動していることを確認
@@ -152,9 +168,10 @@ docker compose ps db
 docker compose exec db psql -v ON_ERROR_STOP=1 -U postgres -d rag_chatbot -c "DROP INDEX IF EXISTS idx_document_chunks_embedding; CREATE INDEX idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10);"
 ```
 
-#### 方法B: ローカル PC の psql クライアントから実行する場合
+#### 方法B: ローカル PC の psql クライアントから実行する場合（任意）
 
-PostgreSQL クライアントをインストール済みで、`psql --version` が実行できる場合の手順です。
+Docker を使わず、ローカル PC にインストール済みの `psql` から実行したい場合のみ、この方法を使います。
+通常のローカル開発では、方法Aの Docker コマンドで実行してください。
 
 ```bash
 # ローカル Docker DB に接続して SQL を実行
