@@ -54,6 +54,7 @@ class RAGService:
         try:
             search_response = await self.search(query=query, top_k=top_k)
         except Exception as exc:
+            logger.exception("Vector search failed.")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={

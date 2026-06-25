@@ -38,7 +38,7 @@ separators = ["\n\n", "\n", "。", ".", " ", ""]
 
 | 項目 | 選択 | 理由 |
 |---|---|---|
-| モデル | `text-embedding-004`（GCP / Google Cloud） | 768 次元・低コスト・高精度な多言語/日本語対応 |
+| モデル | `gemini-embedding-001`（GCP / Google Cloud） | 768 次元・低コスト・高精度な多言語/日本語対応 |
 | 次元数 | 768 | Cloud SQL pgvector VECTOR(768) に対応 |
 | バッチサイズ | 100 チャンクずつ | API レート制限に対応しつつ効率的に処理 |
 | エラー時の挙動 | リトライ 3 回後スキップ・ログ出力 | 一部失敗しても全体を止めない |
@@ -50,7 +50,7 @@ separators = ["\n\n", "\n", "。", ".", " ", ""]
 #### 検索クエリのベクトル化
 
 ```python
-query_embedding = embed(user_query)  # text-embedding-004
+query_embedding = embed(user_query)  # gemini-embedding-001
 ```
 
 #### pgvector でのコサイン類似度検索
@@ -311,7 +311,7 @@ def embed_chunks(chunks: list[str]) -> list[list[float]]:
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i:i + BATCH_SIZE]
         response = client.models.embed_content(
-            model="text-embedding-004",
+            model="gemini-embedding-001",
             contents=batch,
         )
         embeddings.extend([item.values for item in response.embeddings])

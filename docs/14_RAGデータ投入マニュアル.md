@@ -17,7 +17,7 @@
          ↓
 [インジェストバッチの実行] (Docker)
    - テキスト抽出
-   - 768次元ベクトル生成 (text-embedding-004)
+   - 768次元ベクトル生成 (gemini-embedding-001)
    - DB登録 (documents / document_chunks)
          ↓
 [ベクトル検索インデックスの再作成] (SQL)
@@ -32,7 +32,7 @@
 ### ディレクトリ構成の例
 
 ```
-rag-chatbot/
+rag-chatbot-gcp/
 ├── data/
 │   ├── markdown/
 │   │   └── soccer_rules.md      # Markdownファイルはこちら
@@ -104,10 +104,10 @@ GCP（Cloud SQL）への投入は、セキュリティの観点から **Cloud SQ
 1. **対象の GCP プロジェクトを設定**:
    ```bash
    # 例: 検証環境 (stg) の場合
-   gcloud config set project rag-chatbot-stg
+   gcloud config set project rag-chatbot-gcp-stg
    
    # 例: 本番環境 (prod) の場合
-   gcloud config set project rag-chatbot-prod
+   gcloud config set project rag-chatbot-gcp-prod
    ```
 2. **Cloud SQL Auth Proxy の起動**:
    ローカルマシンの 5432 ポートを Cloud SQL の 5432 に接続します。
@@ -138,7 +138,53 @@ GCP（Cloud SQL）への投入は、セキュリティの観点から **Cloud SQ
 ### 5.1 ベクトル検索用インデックスの再構築 (必須)
 
 インジェスト完了後、検索を高速化するためデータベース側でベクトル検索用インデックス（IVFFlat）を再ビルドします。
-GCPコンソールの Cloud SQL Studio や、ローカルの `psql` クライアントから接続し、以下の SQL を実行します。
+実行先がローカル DB か GCP Cloud SQL かによって、以下のいずれかの方法で SQL を実行します。
+
+#### 方法A: ローカル Docker DB に対して実行する場合
+
+プロジェクトルートで、DB コンテナに入って `psql` を実行します。ローカル PC に PostgreSQL クライアントを入れていなくても、この方法で実行できます。
+
+```bash
+# DB コンテナが起動していることを確認
+docker compose ps db
+
+# インデックス再構築 SQL を実行
+docker compose exec db psql -v ON_ERROR_STOP=1 -U postgres -d rag_chatbot -c "DROP INDEX IF EXISTS idx_document_chunks_embedding; CREATE INDEX idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10);"
+```
+
+#### 方法B: ローカル PC の psql クライアントから実行する場合
+
+PostgreSQL クライアントをインストール済みで、`psql --version` が実行できる場合の手順です。
+
+```bash
+# ローカル Docker DB に接続して SQL を実行
+psql "postgresql://postgres:postgres_password@localhost:5432/rag_chatbot" -v ON_ERROR_STOP=1 -c "DROP INDEX IF EXISTS idx_document_chunks_embedding; CREATE INDEX idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10);"
+```
+
+#### 方法C: GCP コンソールの Cloud SQL Studio から実行する場合
+
+1. GCP コンソールを開き、対象プロジェクト（例: `rag-chatbot-gcp-prod` または `rag-chatbot-gcp-stg`）を選択する。
+2. **Cloud SQL** → 対象の PostgreSQL インスタンスを開く。
+3. 左メニューまたは上部メニューから **Cloud SQL Studio** を開く。
+4. データベースに `rag_chatbot`、ユーザーに接続用ユーザー（例: `app_user`）を指定して接続する。
+5. SQL エディタに以下の SQL を貼り付けて実行する。
+
+#### 方法D: GCP Cloud SQL Auth Proxy 経由で psql から実行する場合
+
+Cloud SQL Studio を使わず、ローカル端末から Cloud SQL に接続する場合の手順です。
+
+```bash
+# 1. 対象プロジェクトを設定
+gcloud config set project rag-chatbot-gcp-prod
+
+# 2. 別ターミナルで Cloud SQL Auth Proxy を起動
+cloud-sql-proxy --port 5432 $(gcloud config get-value project):asia-northeast1:rag-db-prod
+
+# 3. 元のターミナルで Cloud SQL に接続して SQL を実行
+psql "postgresql://app_user:YOUR_DB_PASSWORD@localhost:5432/rag_chatbot" -v ON_ERROR_STOP=1 -c "DROP INDEX IF EXISTS idx_document_chunks_embedding; CREATE INDEX idx_document_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10);"
+```
+
+実行する SQL は以下です。
 
 ```sql
 -- 既存のインデックスがある場合は一度削除
@@ -149,6 +195,15 @@ DROP INDEX IF EXISTS idx_document_chunks_embedding;
 CREATE INDEX idx_document_chunks_embedding
 ON document_chunks USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 10);
+```
+
+作成状況を確認する場合は、接続先 DB で以下を実行します。
+
+```sql
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'document_chunks'
+  AND indexname = 'idx_document_chunks_embedding';
 ```
 
 ### 5.2 ログの確認

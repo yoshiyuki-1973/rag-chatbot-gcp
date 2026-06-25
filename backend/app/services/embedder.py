@@ -1,11 +1,12 @@
 from google import genai
+from google.genai import types
 
 
 class EmbeddingClient:
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "text-embedding-004",
+        model: str = "gemini-embedding-001",
         vertexai: bool = False,
         project: str | None = None,
         location: str | None = None,
@@ -26,5 +27,9 @@ class EmbeddingClient:
         response = await self.client.aio.models.embed_content(
             model=self.model,
             contents=text,
+            config=types.EmbedContentConfig(
+                task_type="QUESTION_ANSWERING",
+                output_dimensionality=768,
+            ),
         )
         return response.embeddings[0].values
