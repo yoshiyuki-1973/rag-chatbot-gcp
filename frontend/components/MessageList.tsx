@@ -19,7 +19,7 @@ export const MessageList = forwardRef<HTMLDivElement, Props>(function MessageLis
   ref,
 ) {
   return (
-    <div ref={ref} className="flex-1 space-y-4 overflow-y-auto p-4">
+    <div ref={ref} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
       {messages.length === 0 ? (
         <div className="rounded border border-white/15 bg-white/10 p-4 shadow-xl shadow-black/20 backdrop-blur">
           <p className="text-lg font-semibold text-white">スポーツルールRAGチャットボット</p>
@@ -31,6 +31,7 @@ export const MessageList = forwardRef<HTMLDivElement, Props>(function MessageLis
       {messages.map((message) => (
         <article
           key={message.id}
+          data-message-id={message.id}
           className={`max-w-3xl rounded border p-4 shadow-lg ${
             message.role === "user"
               ? "ml-auto border-[#ff2d92]/70 bg-[#ff2d92] text-white shadow-[#ff2d92]/20"

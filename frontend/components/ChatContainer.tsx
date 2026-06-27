@@ -11,6 +11,7 @@ export function ChatContainer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
+  const latestQuestionIdRef = useRef<string | null>(null);
   const sessionId = useMemo(() => crypto.randomUUID(), []);
 
   useEffect(() => {
@@ -18,6 +19,25 @@ export function ChatContainer() {
     if (!list) {
       return;
     }
+
+    const latestMessage = messages.at(-1);
+    const questionId = latestQuestionIdRef.current;
+    if (!loading && latestMessage?.role === "assistant" && questionId) {
+      const frameId = requestAnimationFrame(() => {
+        const question = list.querySelector<HTMLElement>(`[data-message-id="${questionId}"]`);
+        if (!question) {
+          return;
+        }
+        const targetTop =
+          question.getBoundingClientRect().top -
+          list.getBoundingClientRect().top +
+          list.scrollTop -
+          16;
+        list.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+
     list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
@@ -29,7 +49,9 @@ export function ChatContainer() {
     setQuery("");
     setError(null);
     setLoading(true);
-    setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", content: trimmed }]);
+    const questionId = crypto.randomUUID();
+    latestQuestionIdRef.current = questionId;
+    setMessages((current) => [...current, { id: questionId, role: "user", content: trimmed }]);
     try {
       const response = await sendChat(trimmed, sessionId);
       setMessages((current) => [
@@ -44,7 +66,7 @@ export function ChatContainer() {
   }
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col border-x border-white/10 bg-[#120914]/80 text-[#f8f5ff] shadow-2xl shadow-black/40 backdrop-blur">
+    <main className="relative mx-auto flex h-dvh min-h-0 max-w-5xl flex-col border-x border-white/10 bg-[#120914]/80 text-[#f8f5ff] shadow-2xl shadow-black/40 backdrop-blur">
       <header className="flex items-center justify-between border-b border-white/10 bg-[#1b0d24]/90 px-4 py-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#1de9ff]">Sports Rule Stage</p>
