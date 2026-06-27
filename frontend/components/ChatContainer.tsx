@@ -22,22 +22,31 @@ export function ChatContainer() {
 
     const latestMessage = messages.at(-1);
     const questionId = latestQuestionIdRef.current;
+    const spacer = list.querySelector<HTMLElement>("[data-scroll-spacer]");
     if (!loading && latestMessage?.role === "assistant" && questionId) {
       const frameId = requestAnimationFrame(() => {
         const question = list.querySelector<HTMLElement>(`[data-message-id="${questionId}"]`);
         if (!question) {
           return;
         }
-        const targetTop =
+        spacer?.style.setProperty("height", "0px");
+        const targetTop = Math.max(
+          0,
           question.getBoundingClientRect().top -
-          list.getBoundingClientRect().top +
-          list.scrollTop -
-          16;
-        list.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+            list.getBoundingClientRect().top +
+            list.scrollTop -
+            16,
+        );
+        const missingScrollSpace = targetTop - (list.scrollHeight - list.clientHeight);
+        if (spacer && missingScrollSpace > 0) {
+          spacer.style.height = `${missingScrollSpace}px`;
+        }
+        list.scrollTo({ top: targetTop, behavior: "smooth" });
       });
       return () => cancelAnimationFrame(frameId);
     }
 
+    spacer?.style.removeProperty("height");
     list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 

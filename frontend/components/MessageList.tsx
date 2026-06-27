@@ -56,6 +56,7 @@ export const MessageList = forwardRef<HTMLDivElement, Props>(function MessageLis
           回答を生成しています...
         </div>
       ) : null}
+      <div data-scroll-spacer aria-hidden="true" />
     </div>
   );
 });
