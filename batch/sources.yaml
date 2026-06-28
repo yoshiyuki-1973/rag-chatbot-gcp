@@ -47,6 +47,14 @@ sources:
     authority_score: 0.9
     content_date: 2026-01-01
 
+  - path: data/pdf/ITF_Rules_of_Tennis_2026_EN.pdf
+    title: ITF Rules of Tennis 2026
+    source_url: local://ITF_Rules_of_Tennis_2026_EN.pdf
+    file_type: pdf
+    organization: ITF
+    authority_score: 0.9
+    content_date: 2026-01-01
+
   - path: data/pdf/ITTF_Statutes_2026_EN.pdf
     title: ITTF Statutes 2026
     source_url: local://ITTF_Statutes_2026_EN.pdf

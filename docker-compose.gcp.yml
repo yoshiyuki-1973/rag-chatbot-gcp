@@ -1,0 +1,18 @@
+services:
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.22.1
+    command:
+      - "--address=0.0.0.0"
+      - "--port=5432"
+      - "--credentials-file=/config/application_default_credentials.json"
+      - "${CLOUD_SQL_CONNECTION_NAME:-invalid-project:invalid-region:invalid-instance}"
+    volumes:
+      - type: bind
+        source: ${APPDATA}/gcloud/application_default_credentials.json
+        target: /config/application_default_credentials.json
+        read_only: true
+
+  cloud-sql-psql:
+    image: postgres:15
+    profiles:
+      - gcp-tools

@@ -1,4 +1,5 @@
 .env
+.env.stg
 .env.prod
 .venv/
 venv/
@@ -21,4 +22,4 @@ CLAUDE.md
 *.tfstate
 *.tfstate.backup
 *.tfvars
-.terraform.lock.hcl
+*.tfplan

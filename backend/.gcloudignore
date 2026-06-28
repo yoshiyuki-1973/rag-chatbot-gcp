@@ -1,0 +1,14 @@
+# Cloud Buildへ送信しないローカル生成物
+.gcloudignore
+.git
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+.env*
+*.log

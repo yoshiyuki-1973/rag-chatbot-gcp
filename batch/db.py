@@ -20,6 +20,26 @@ class IngestRepository:
     def __init__(self, database_url: str):
         self.database_url = database_url
 
+    async def check_ready(self) -> None:
+        """DB接続とIngestに必要なテーブルの存在を処理開始前に確認する。"""
+        conn = await asyncpg.connect(self.database_url)
+        try:
+            required_tables = ("documents", "document_chunks")
+            missing_tables = []
+            for table_name in required_tables:
+                relation = await conn.fetchval(
+                    "SELECT to_regclass($1)",
+                    f"public.{table_name}",
+                )
+                if relation is None:
+                    missing_tables.append(table_name)
+
+            if missing_tables:
+                joined_names = ", ".join(missing_tables)
+                raise RuntimeError(f"Required database tables are missing: {joined_names}")
+        finally:
+            await conn.close()
+
     async def upsert_document_with_chunks(
         self,
         source: SourceConfig,
@@ -78,4 +98,3 @@ class IngestRepository:
 
 def run_async(coro):
     return asyncio.run(coro)
-

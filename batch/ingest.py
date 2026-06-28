@@ -24,6 +24,10 @@ def main() -> None:
     if use_vertex_ai and not gcp_project_id:
         raise RuntimeError("GCP_PROJECT_ID is required when USE_VERTEX_AI is true")
 
+    repository = IngestRepository(database_url)
+    run_async(repository.check_ready())
+    print("[INFO] Database connection and required tables: OK")
+
     sources = load_sources(Path("sources.yaml"))
     embedder = EmbeddingBatchClient(
         api_key=gemini_api_key,
@@ -31,7 +35,6 @@ def main() -> None:
         project=gcp_project_id,
         location=gcp_location,
     )
-    repository = IngestRepository(database_url)
     completed = 0
     failed = 0
 
@@ -57,6 +60,8 @@ def main() -> None:
             continue
 
     print(f"[INFO] Completed: {completed}/{len(sources)} files processed, {failed} files failed")
+    if failed:
+        raise SystemExit(1)
 
 
 def load_sources(path: Path) -> list[SourceConfig]:

@@ -16,7 +16,7 @@ services:
   backend:
     build:
       context: ./backend
-    env_file: .env
+    env_file: ${APP_ENV_FILE:-.env}
     depends_on:
       db:
         condition: service_healthy
@@ -24,7 +24,9 @@ services:
   ingest:
     build:
       context: ./batch
-    env_file: .env
+    env_file: ${APP_ENV_FILE:-.env}
+    volumes:
+      - ./data:/app/data:ro
     profiles:
       - batch
     depends_on:
